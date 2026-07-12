@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# 编译产物
+/lesson1/lesson1
+*.exe
+*.test
+*.out
+
+# IDE
+.idea/
