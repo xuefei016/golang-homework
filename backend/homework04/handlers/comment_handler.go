@@ -1,8 +1,10 @@
 package handlers
 
 import (
-	"homework04/models"
 	"net/http"
+
+	"homework04/models"
+	"homework04/utils"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -20,10 +22,10 @@ func (h *CommentHandler) ListComments(ctx *gin.Context) {
 	postId := ctx.Param("id")
 	var comments []models.Comment
 	if err := h.db.Where("post_id = ?", postId).Find(&comments).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.Error(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, comments)
+	utils.Success(ctx, comments)
 }
 
 func (h *CommentHandler) CreateComment(ctx *gin.Context) {
@@ -32,13 +34,13 @@ func (h *CommentHandler) CreateComment(ctx *gin.Context) {
 
 	var req models.Comment
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.Error(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	var post models.Post
 	if err := h.db.First(&post, postId).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+		utils.Error(ctx, http.StatusNotFound, "Post not found")
 		return
 	}
 
@@ -49,10 +51,9 @@ func (h *CommentHandler) CreateComment(ctx *gin.Context) {
 	}
 
 	if err := h.db.Create(&comment).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.Error(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, comment)
-
+	utils.Created(ctx, comment)
 }

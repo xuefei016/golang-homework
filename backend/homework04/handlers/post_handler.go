@@ -1,8 +1,10 @@
 package handlers
 
 import (
-	"homework04/models"
 	"net/http"
+
+	"homework04/models"
+	"homework04/utils"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -19,7 +21,7 @@ func NewPostHandler(db *gorm.DB) *PostHandler {
 func (h *PostHandler) CreatePost(ctx *gin.Context) {
 	var post models.Post
 	if err := ctx.ShouldBindJSON(&post); err != nil {
-		ctx.JSON(400, gin.H{"error": err.Error()})
+		utils.Error(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -27,38 +29,38 @@ func (h *PostHandler) CreatePost(ctx *gin.Context) {
 
 	newPost := models.Post{UserID: userId, Title: post.Title, Content: post.Content}
 	if err := h.db.Create(&newPost).Error; err != nil {
-		ctx.JSON(500, gin.H{"error": err.Error()})
+		utils.Error(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, newPost)
+	utils.Created(ctx, newPost)
 }
 
 func (h *PostHandler) ListPosts(ctx *gin.Context) {
 	var posts []models.Post
 	if err := h.db.Find(&posts).Error; err != nil {
-		ctx.JSON(500, gin.H{"error": err.Error()})
+		utils.Error(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, posts)
+	utils.Success(ctx, posts)
 }
 
 func (h *PostHandler) GetPost(ctx *gin.Context) {
 	id := ctx.Param("id")
 	var post models.Post
 	if err := h.db.Where("id = ?", id).First(&post).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
+		utils.Error(ctx, http.StatusNotFound, "post not found")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, post)
+	utils.Success(ctx, post)
 }
 
 func (h *PostHandler) UpdatePost(ctx *gin.Context) {
 	var input models.Post
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.Error(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -66,23 +68,23 @@ func (h *PostHandler) UpdatePost(ctx *gin.Context) {
 	var post models.Post
 	id := ctx.Param("id")
 	if err := h.db.Where("id = ?", id).First(&post).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
+		utils.Error(ctx, http.StatusNotFound, "post not found")
 		return
 	}
 
 	if post.UserID != userId {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		utils.Error(ctx, http.StatusForbidden, "forbidden")
 		return
 	}
 
 	post.Title = input.Title
 	post.Content = input.Content
 	if err := h.db.Save(&post).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.Error(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, post)
+	utils.Success(ctx, post)
 }
 
 func (h *PostHandler) DeletePost(ctx *gin.Context) {
@@ -91,19 +93,19 @@ func (h *PostHandler) DeletePost(ctx *gin.Context) {
 
 	var post models.Post
 	if err := h.db.Where("id = ?", id).First(&post).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
+		utils.Error(ctx, http.StatusNotFound, "post not found")
 		return
 	}
 
 	if post.UserID != userId {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		utils.Error(ctx, http.StatusForbidden, "forbidden")
 		return
 	}
 
 	if err := h.db.Delete(&models.Post{}, id).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.Error(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "post deleted"})
+	utils.Success(ctx, gin.H{"message": "post deleted"})
 }

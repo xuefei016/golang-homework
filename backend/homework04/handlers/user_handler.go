@@ -33,13 +33,13 @@ type RegisterRequest struct {
 func (h *UserHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		utils.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		utils.Error(c, http.StatusInternalServerError, "Failed to hash password")
 		return
 	}
 
@@ -50,13 +50,13 @@ func (h *UserHandler) Register(c *gin.Context) {
 	}
 	if err := h.db.Create(&user).Error; err != nil {
 		if err == gorm.ErrDuplicatedKey {
-			c.JSON(http.StatusConflict, gin.H{"error": "User already exists"})
+			utils.Error(c, http.StatusConflict, "User already exists")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		utils.Error(c, http.StatusInternalServerError, "Failed to create user")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "User registered successfully"})
+	utils.Success(c, gin.H{"message": "User registered successfully"})
 }
 
 type LoginRequest struct {
@@ -67,25 +67,25 @@ type LoginRequest struct {
 func (h *UserHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	var user models.User
 	if err := h.db.Where("username=?", req.Username).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		utils.Error(c, http.StatusUnauthorized, "Invalid username or password")
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		utils.Error(c, http.StatusUnauthorized, "Invalid username or password")
 		return
 	}
 
 	token, err := utils.GenerateToken(user.ID, h.jwtSecret)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		utils.Error(c, http.StatusInternalServerError, "Failed to generate token")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Login successful", "token": token})
+	utils.Success(c, gin.H{"token": token})
 }
