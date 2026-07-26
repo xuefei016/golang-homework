@@ -12,3 +12,7 @@
 
 # 数据库文件
 *.db
+
+.launch.json
+# Go 调试临时二进制（Delve/VSCode）
+__debug_bin*
