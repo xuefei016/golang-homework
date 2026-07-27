@@ -16,3 +16,10 @@
 .launch.json
 # Go 调试临时二进制（Delve/VSCode）
 __debug_bin*
+
+# 环境变量 / 密钥（绝不入库）
+.env
+*.env
+
+# Go 编译出的可执行文件（与目录同名）
+backend/homework05/homework05
