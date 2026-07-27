@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -41,21 +43,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("创建签名器失败: %v", err)
 	}
-
-	// 1. 部署 Counter 合约
-	address, deployTx, instance, err := contract.DeployCounter(auth, client)
-	if err != nil {
-		log.Fatalf("部署失败: %v", err)
-	}
-	log.Printf("合约地址: %s | 部署交易: %s", address.Hex(), deployTx.Hash().Hex())
-
-	// 等部署上链（合约要被打包后才能调用）
-	if _, err := bind.WaitDeployed(ctx, client, deployTx); err != nil {
-		log.Fatalf("等待部署上链失败: %v", err)
-	}
-	log.Println("合约已部署上链")
-
-	// 2. 读初始值（call，免费）
+	instance := getDeployCounterInstance(ctx, client, auth)
+	// instance := getCallContractInstance(client, "0x7Ae48fb752A819147b2b7c30f60711DAfD56C5fb")
 	count, err := instance.GetCount(&bind.CallOpts{})
 	if err != nil {
 		log.Fatalf("读取 count 失败: %v", err)
@@ -78,4 +67,29 @@ func main() {
 		log.Fatalf("读取 count 失败: %v", err)
 	}
 	log.Printf("increment 后 count = %s", count.String())
+}
+
+func getDeployCounterInstance(ctx context.Context, client *ethclient.Client, auth *bind.TransactOpts) *contract.Counter {
+	// 1. 部署 Counter 合约
+	address, deployTx, instance, err := contract.DeployCounter(auth, client)
+	if err != nil {
+		log.Fatalf("部署失败: %v", err)
+	}
+	log.Printf("合约地址: %s | 部署交易: %s", address.Hex(), deployTx.Hash().Hex())
+
+	// 等部署上链（合约要被打包后才能调用）
+	if _, err := bind.WaitDeployed(ctx, client, deployTx); err != nil {
+		log.Fatalf("等待部署上链失败: %v", err)
+	}
+	log.Println("合约已部署上链")
+	return instance
+}
+
+func getCallContractInstance(client *ethclient.Client, address string) *contract.Counter {
+	ctrAddress := common.HexToAddress(address)
+	instance, err := contract.NewCounter(ctrAddress, client)
+	if err != nil {
+		log.Fatalf("创建合约实例失败: %v", err)
+	}
+	return instance
 }
